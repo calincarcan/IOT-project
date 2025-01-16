@@ -4,21 +4,46 @@
 #include <ArduinoJson.h>
 
 #define DHT11PIN 4
+#define LED_PIN 2
 DHT11 dht11(DHT11PIN);
 
+const int sensor_id = 3;
 const char* ssid = "Calin_IOT";
 const char* password = "caliniot";
-String url = "https://0e89-81-196-141-57.ngrok-free.app/api/data";
+String pastebin_url = "https://pastebin.com/raw/i0PiJ2Np";
+String url;
+int activity = 0;
+
 HTTPClient http;
 
 void setup() {
   Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
+    digitalWrite(LED_PIN, HIGH);
+    delay(200);
     Serial.print(".");
+    digitalWrite(LED_PIN, LOW);
+    delay(200);
   }
   Serial.println("\nConnected to WiFi!");
+
+    http.begin(pastebin_url);
+    int httpResponseCode = http.GET();
+    if (httpResponseCode > 0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        url = http.getString();
+        Serial.print("URL found: ");
+        if (url.indexOf("ngrok") != -1) {
+            activity = 1;
+        }
+        Serial.println(url);
+    } else {
+        Serial.print("Didnt find the url: ");
+        Serial.println(httpResponseCode);
+    }
 }
 
 void getTempHumidity(int& temp, int& humidity) {
@@ -36,8 +61,9 @@ void getTempHumidity(int& temp, int& humidity) {
 
 void sendTempHumidity(int temp, int humidity) {
     StaticJsonDocument<200> doc;
-    doc["temp"] = temp;
+    doc["temperature"] = temp;
     doc["humidity"] = humidity;
+    doc["sensor_id"] = sensor_id;
     
     String jsonData;
     serializeJson(doc, jsonData);
@@ -59,76 +85,18 @@ void sendTempHumidity(int temp, int humidity) {
     }
     
     http.end();
-}
-
-String getCurrentTime() {
-    http.begin("https://timeapi.io/api/time/current/zone?timeZone=Europe/Bucharest");
-    int httpResponseCode = http.GET();
-    String date;
-
-    if (httpResponseCode <= 0) {
-        Serial.print("Error in HTTP request: ");
-        Serial.println(httpResponseCode);
-        http.end();
-        return "";
-    }
-
-    String response = http.getString();
-    // Serial.println("DateTime Response: ");
-    // Serial.println(response);
-
-    StaticJsonDocument<200> timeDoc;
-    DeserializationError error = deserializeJson(timeDoc, response);
-    if (error) {
-        Serial.print("Error parsing time API response: ");
-        Serial.println(error.c_str());
-        http.end();
-        return "";
-    }
-
-    date = timeDoc["year"].as<String>() + 
-    "-" + timeDoc["month"].as<String>() + 
-    "-" + timeDoc["day"].as<String>() + "T"
-    " " + timeDoc["hour"].as<String>() +
-    ":" + timeDoc["minute"].as<String>() +
-    ":" + timeDoc["seconds"].as<String>();
-    Serial.print("Date: ");
-    Serial.println(date);
-    http.end();
-
-    return date;
 }
 
 void loop() {
     int temperature = -1;
     int humidity = -1;
 
-    getTempHumidity(temperature, humidity);
-
-    StaticJsonDocument<200> doc;
-    doc["temperature"] = temperature;
-    doc["humidity"] = humidity;
-    doc["date"] = getCurrentTime();
-    String jsonData;
-    serializeJson(doc, jsonData);
-
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    Serial.print("Sending to ");
-    Serial.println(url);
-
-    int httpResponseCode = http.POST(jsonData);
-
-    if (httpResponseCode > 0) {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-        String response = http.getString();
-        Serial.println("Response: ");
-        Serial.println(response);
-    } else {
-        Serial.print("Error in HTTP request: ");
-        Serial.println(httpResponseCode);
+    digitalWrite(LED_PIN, HIGH);
+    if (activity) {
+        getTempHumidity(temperature, humidity);
+        sendTempHumidity(temperature, humidity);
     }
+    digitalWrite(LED_PIN, LOW);
 
-    delay(2000);
+    delay(4000);
 }
