@@ -8,8 +8,8 @@
 DHT11 dht11(DHT11PIN);
 
 const int sensor_id = 3;
-const char* ssid = "Calin_IOT";
-const char* password = "caliniot";
+const char *ssid = "Calin_IOT";
+const char *password = "caliniot";
 String pastebin_url = "https://pastebin.com/raw/i0PiJ2Np";
 String url;
 int activity = 0;
@@ -17,17 +17,17 @@ int activity = 0;
 HTTPClient http;
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_PIN, HIGH);
-    delay(200);
-    Serial.print(".");
-    digitalWrite(LED_PIN, LOW);
-    delay(200);
-  }
-  Serial.println("\nConnected to WiFi!");
+    Serial.begin(115200);
+    pinMode(LED_PIN, OUTPUT);
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        Serial.print(".");
+        digitalWrite(LED_PIN, LOW);
+        delay(200);
+    }
+    Serial.println("\nConnected to WiFi!");
 
     http.begin(pastebin_url);
     int httpResponseCode = http.GET();
@@ -36,17 +36,19 @@ void setup() {
         Serial.println(httpResponseCode);
         url = http.getString();
         Serial.print("URL found: ");
-        if (url.indexOf("ngrok") != -1) {
+        if (url.indexOf("ngrok") != -1)
+        {
             activity = 1;
         }
         Serial.println(url);
-    } else {
+    }
+    else {
         Serial.print("Didnt find the url: ");
         Serial.println(httpResponseCode);
     }
 }
 
-void getTempHumidity(int& temp, int& humidity) {
+void getTempHumidity(int &temp, int &humidity) {
     int result = dht11.readTemperatureHumidity(temp, humidity);
     if (result == 0) {
         Serial.print("Temperature: ");
@@ -54,7 +56,8 @@ void getTempHumidity(int& temp, int& humidity) {
         Serial.print(" °C\tHumidity: ");
         Serial.print(humidity);
         Serial.println(" %");
-    } else {
+    }
+    else {
         Serial.println(DHT11::getErrorString(result));
     }
 }
@@ -64,7 +67,7 @@ void sendTempHumidity(int temp, int humidity) {
     doc["temperature"] = temp;
     doc["humidity"] = humidity;
     doc["sensor_id"] = sensor_id;
-    
+
     String jsonData;
     serializeJson(doc, jsonData);
 
@@ -79,20 +82,23 @@ void sendTempHumidity(int temp, int humidity) {
         String response = http.getString();
         Serial.println("Response: ");
         Serial.println(response);
-    } else {
+    }
+    else {
         Serial.print("Error in HTTP request: ");
         Serial.println(httpResponseCode);
     }
-    
+
     http.end();
 }
 
-void loop() {
+void loop()
+{
     int temperature = -1;
     int humidity = -1;
 
     digitalWrite(LED_PIN, HIGH);
-    if (activity) {
+    if (activity)
+    {
         getTempHumidity(temperature, humidity);
         sendTempHumidity(temperature, humidity);
     }
