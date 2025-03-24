@@ -38,7 +38,8 @@ def home():
 def set_temperature_alert(temperature_alert):
     global TEMPERATURE_ALERT
     try:
-        TEMPERATURE_ALERT = temperature_alert
+        TEMPERATURE_ALERT = int(temperature_alert)
+        print(f'Temperature alert threshold updated to {TEMPERATURE_ALERT}')
         return jsonify({"message": "Temperature alert threshold updated!", "temperature_alert": TEMPERATURE_ALERT}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -47,7 +48,8 @@ def set_temperature_alert(temperature_alert):
 def set_humidity_alert(humidity_alert):
     global HUMIDITY_ALERT
     try:
-        HUMIDITY_ALERT = humidity_alert
+        HUMIDITY_ALERT = int(humidity_alert)
+        print(f'Humidity alert threshold updated to {HUMIDITY_ALERT}')
         return jsonify({"message": "Humidity alert threshold updated!", "humidity_alert": HUMIDITY_ALERT}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -64,9 +66,15 @@ def add_data():
         }
         db.insert(new_data)
         if new_data['temperature'] > TEMPERATURE_ALERT:
-            send_alert("Temperature Alert", f"Temperature is {new_data['temperature']}°C")
+            subject = "Temperature Alert"
+            body = f"Temperature is {new_data['temperature']}°C recorded on sensor {new_data['sensor_id']}."
+            send_alert(subject, body)
+            print(f'Sent alert for temperature {new_data["temperature"]}')
         if new_data['humidity'] > HUMIDITY_ALERT:
-            send_alert("Humidity Alert", f"Humidity is {new_data['humidity']}%")
+            subject = "Humidity Alert"
+            body = f"Humidity is {new_data['humidity']}% recorded on sensor {new_data['sensor_id']}."
+            send_alert(subject, body)
+            print(f'Sent alert for humidity {new_data["humidity"]}')
         print(f'Inserted: {new_data}')
         return jsonify({"error": "Success!"}), 200
     except Exception as e:
@@ -83,4 +91,6 @@ def delete_data():
     return jsonify({'message': 'Data deleted'})
 
 if __name__ == "__main__":
+    if ALERT_PASSWORD is not None:
+        print("Starting server...")
     app.run(host='0.0.0.0', port=20388)
